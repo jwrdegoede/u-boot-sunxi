@@ -570,4 +570,11 @@ config SPL_STACK_R_ADDR
 	default 0x4fe00000 if MACH_SUN4I || MACH_SUN5I || MACH_SUN6I || MACH_SUN7I || MACH_SUN8I
 	default 0x2fe00000 if MACH_SUN9I
 
+config SUNXI_NAND_UBI_START
+	hex "Start address of the main UBI partition in nand"
+	default 0x400000
+	---help---
+	Set the start address of the main UBI partition in nand, this is
+	used for the mtdparts environment variable in the default env.
+
 endif

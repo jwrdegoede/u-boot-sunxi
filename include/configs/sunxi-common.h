@@ -137,7 +137,25 @@
 
 #ifdef CONFIG_NAND_SUNXI
 #define CONFIG_SPL_NAND_SUPPORT 1
-#endif
+#define CONFIG_SYS_NAND_ONFI_DETECTION
+#define CONFIG_SYS_MAX_NAND_DEVICE 8
+
+/* Requirements for UBI */
+#define CONFIG_RBTREE
+#define CONFIG_LZO
+#define CONFIG_CMD_MTDPARTS
+#define CONFIG_CMD_UBI
+#define CONFIG_CMD_UBIFS
+#define CONFIG_MTD_DEVICE
+
+#define CONFIG_MTD_PARTITIONS
+/*
+#define CONFIG_MTD_DEBUG
+#define CONFIG_MTD_DEBUG_VERBOSE		MTD_DEBUG_LEVEL3
+*/
+#define CONFIG_CMD_NAND_TRIMFFS
+
+#endif /* CONFIG_NAND_SUNXI */
 
 /* mmc config */
 #ifdef CONFIG_MMC
@@ -419,6 +437,16 @@ extern int soft_i2c_gpio_scl;
 #define BOOT_TARGET_DEVICES_USB(func)
 #endif
 
+#ifdef CONFIG_CMD_UBIFS
+#define BOOT_TARGET_DEVICES_UBIFS(func) func(UBIFS, ubifs, 0)
+#define MTD_ENV_SETTINGS \
+	"mtdids=nand0=sunxi-nand.0\0" \
+	"mtdparts=mtdparts=sunxi-nand.0:-@" __stringify(CONFIG_SUNXI_NAND_UBI_START) "(UBI)\0"
+#else
+#define BOOT_TARGET_DEVICES_UBIFS(func)
+#define MTD_ENV_SETTINGS
+#endif
+
 /* FEL boot support, auto-execute boot.scr if a script address was provided */
 #define BOOTENV_DEV_FEL(devtypeu, devtypel, instance) \
 	"bootcmd_fel=" \
@@ -432,6 +460,7 @@ extern int soft_i2c_gpio_scl;
 #define BOOT_TARGET_DEVICES(func) \
 	func(FEL, fel, na) \
 	BOOT_TARGET_DEVICES_MMC(func) \
+	BOOT_TARGET_DEVICES_UBIFS(func) \
 	BOOT_TARGET_DEVICES_SCSI(func) \
 	BOOT_TARGET_DEVICES_USB(func) \
 	func(PXE, pxe, na) \
@@ -481,6 +510,7 @@ extern int soft_i2c_gpio_scl;
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONSOLE_ENV_SETTINGS \
 	MEM_LAYOUT_ENV_SETTINGS \
+	MTD_ENV_SETTINGS \
 	"fdtfile=" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0" \
 	"console=ttyS0,115200\0" \
 	BOOTCMD_SUNXI_COMPAT \
