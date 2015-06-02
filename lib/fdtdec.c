@@ -78,6 +78,7 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(ALTERA_SOCFPGA_DWMMC, "altr,socfpga-dw-mshc"),
 	COMPAT(COMPAT_INTEL_BAYTRAIL_FSP, "intel,baytrail-fsp"),
 	COMPAT(COMPAT_INTEL_BAYTRAIL_FSP_MDP, "intel,baytrail-fsp-mdp"),
+	COMPAT(COMPAT_SUNXI_NAND, "allwinner,sun4i-a10-nand"),
 };
 
 const char *fdtdec_get_compatible(enum fdt_compat_id id)
@@ -700,6 +701,22 @@ static const void *get_prop_check_min_len(const void *blob, int node,
 	else
 		*err = 0;
 	return cell;
+}
+
+int fdtdec_get_u16_array(const void *blob, int node, const char *prop_name,
+		u16 *array, int count)
+{
+	const u16 *cell;
+	int i, err = 0;
+
+	debug("%s: %s\n", __func__, prop_name);
+	cell = get_prop_check_min_len(blob, node, prop_name,
+				      sizeof(u16) * count, &err);
+	if (!err) {
+		for (i = 0; i < count; i++)
+			array[i] =  be16_to_cpu(cell[i]);
+	}
+	return err;
 }
 
 int fdtdec_get_int_array(const void *blob, int node, const char *prop_name,

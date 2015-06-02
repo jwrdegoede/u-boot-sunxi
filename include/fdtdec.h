@@ -174,6 +174,7 @@ enum fdt_compat_id {
 	COMPAT_ALTERA_SOCFPGA_DWMMC,	/* SoCFPGA DWMMC controller */
 	COMPAT_INTEL_BAYTRAIL_FSP,	/* Intel Bay Trail FSP */
 	COMPAT_INTEL_BAYTRAIL_FSP_MDP,	/* Intel FSP memory-down params */
+	COMPAT_SUNXI_NAND,		/* SUNXI NAND controller */
 
 	COMPAT_COUNT,
 };
@@ -679,6 +680,18 @@ const char *fdtdec_get_compatible(enum fdt_compat_id id);
  * @return node offset if found, -ve error code on error
  */
 int fdtdec_lookup_phandle(const void *blob, int node, const char *prop_name);
+
+/**
+ * @param blob		FDT blob
+ * @param node		node to examine
+ * @param prop_name	name of property to find
+ * @param array		array to fill with data
+ * @param count		number of array elements
+ * @return 0 if ok, or -FDT_ERR_NOTFOUND if the property is not found,
+ *		or -FDT_ERR_BADLAYOUT if not enough data
+ */
+int fdtdec_get_u16_array(const void *blob, int node, const char *prop_name,
+		u16 *array, int count);
 
 /**
  * Look up a property in a node and return its contents in an integer

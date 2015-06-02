@@ -20,6 +20,7 @@
 #include <asm/arch/dram.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/mmc.h>
+#include <asm/arch/nand.h>
 #include <asm/arch/usb_phy.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
@@ -137,6 +138,9 @@ void board_nand_init(void)
 {
 	nand_pinmux_setup();
 	nand_clock_setup();
+#ifndef CONFIG_SPL_BUILD
+	sunxi_nand_init();
+#endif
 }
 #endif
 
