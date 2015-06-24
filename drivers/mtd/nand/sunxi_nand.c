@@ -800,7 +800,7 @@ static int sunxi_nfc_hw_ecc_write_page(struct mtd_info *mtd,
 
 	for (i = 0; i < mtd->writesize / ecc->size; i++) {
 		bool rndactiv = false;
-		u8 oob_buf[4];
+		u32 user_data;
 
 		if (i)
 			chip->cmdfunc(mtd, NAND_CMD_RNDIN, i * ecc->size, -1);
@@ -811,15 +811,13 @@ static int sunxi_nfc_hw_ecc_write_page(struct mtd_info *mtd,
 		offset = layout->eccpos[i * ecc->bytes] - 4 + mtd->writesize;
 
 		/* Fill OOB data in */
-		if (!oob_required)
-			memset(oob_buf, 0xff, 4);
-		else
-			memcpy(oob_buf,
-			       chip->oob_poi + layout->oobfree[i].offset,
-			       4);
-
-
-		memcpy_toio(nfc->regs->user_data, oob_buf, 4);
+		if (!oob_required) {
+			user_data = 0xffffffff;
+		} else {
+			memcpy(&user_data,
+			       chip->oob_poi + layout->oobfree[i].offset, 4);
+			user_data = le32_to_cpu(user_data);
+		}
 
 		if (i) {
 			cnt = ecc->bytes + 4;
@@ -838,18 +836,24 @@ static int sunxi_nfc_hw_ecc_write_page(struct mtd_info *mtd,
 		if (rndactiv) {
 			/* pre randomize to generate FF patterns on the NAND */
 			if (!i) {
+				u8 oob_tmp[2];
 				u16 state = rnd->subseeds[rnd->page % rnd->nseeds];
+				oob_tmp[0] = user_data;
+				oob_tmp[1] = user_data >> 8;
 				state = sunxi_nfc_hwrnd_single_step(state, 15);
-				oob_buf[0] ^= state;
+				oob_tmp[0] ^= state;
 				state = sunxi_nfc_hwrnd_step(rnd, state, 1);
-				oob_buf[1] ^= state;
-				memcpy_toio(nfc->regs->user_data, oob_buf, 4);
+				oob_tmp[1] ^= state;
+				user_data &= ~0xffff;
+				user_data |= oob_tmp[0] | (oob_tmp[1] << 8);
 			}
 			tmp = readl(&nfc->regs->ecc_ctl);
 			tmp &= ~(SUNXI_NAND_ECC_CTL_RND_DIRECTION | SUNXI_NAND_ECC_CTL_EXCEPTION);
 			tmp |= SUNXI_NAND_ECC_CTL_RND_EN;
 			writel(tmp, &nfc->regs->ecc_ctl);
 		}
+
+		writel(user_data, &nfc->regs->user_data[0]);
 
 		chip->cmdfunc(mtd, NAND_CMD_RNDIN, offset, -1);
 		sunxi_nfc_wait_cmd_fifo_empty(nfc);
@@ -1051,12 +1055,12 @@ static int sunxi_nfc_hw_syndrome_ecc_write_page(struct mtd_info *mtd,
 		/* Fill OOB data in */
 		if (oob_required) {
 			tmp = 0xffffffff;
-			memcpy_toio(nfc->regs->user_data, &tmp,
-				    4);
 		} else {
-			memcpy_toio(nfc->regs->user_data, oob ,
-				    4);
+			memcpy(&tmp, oob, sizeof(tmp));
+			tmp = le32_to_cpu(tmp);
 		}
+
+		writel(tmp, &nfc->regs->user_data[0]);
 
 		cnt = ecc->bytes + 4;
 		if (rnd &&
@@ -1629,6 +1633,7 @@ static int sunxi_nand_ecc_init(int node, struct mtd_info *mtd,
 		ecc->strength = nand->ecc_strength_ds;
 	}
 
+	printf("strength = %d/%d\n", ecc->strength,ecc->size);
 	ecc->mode = NAND_ECC_HW;
 
 	ret = of_get_nand_ecc_mode(node);
