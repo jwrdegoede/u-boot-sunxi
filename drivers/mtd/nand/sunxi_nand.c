@@ -146,7 +146,7 @@ struct sunxi_nand_hw_rnd {
 struct sunxi_nand_chip {
 	struct list_head node;
 	struct nand_chip nand;
-	struct mtd_info mtd;
+	struct mtd_info *mtd;
 	char default_name[MAX_NAME_SIZE];
 	void *buffer;
 	unsigned long clk_rate;
@@ -1319,7 +1319,7 @@ static int sunxi_nand_chip_init_timings(struct sunxi_nand_chip *chip)
 			mode = 0;
 
 		feature[0] = mode;
-		ret = chip->nand.onfi_set_features(&chip->mtd, &chip->nand,
+		ret = chip->nand.onfi_set_features(chip->mtd, &chip->nand,
 						ONFI_FEATURE_ADDR_TIMING_MODE,
 						feature);
 		if (ret)
@@ -1724,8 +1724,6 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 	if (IS_ERR(timings))
 		return PTR_ERR(timings);
 
-	ret = sunxi_nand_chip_set_timings(chip, timings);
-
 	nand = &chip->nand;
 
 	nand->chip_delay = 200;
@@ -1739,9 +1737,15 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 	if(fdtdec_get_bool(gd->fdt_blob, node, "nand-on-flash-bbt"))
 		nand->bbt_options |= NAND_BBT_USE_FLASH | NAND_BBT_NO_OOB;
 
-	mtd =  &nand_info[devnum];
+	mtd = &nand_info[devnum];
+	chip->mtd = mtd;
 	mtd->priv = nand;
 
+	ret = sunxi_nand_chip_set_timings(chip, timings);
+	if (ret) {
+		pr_err("Error in sunxi_nand_chip_set_timings: %d\n", ret);
+		return ret;
+	}
 
 	ret = nand_scan_ident(mtd, nsels, NULL);
 	if (ret){
