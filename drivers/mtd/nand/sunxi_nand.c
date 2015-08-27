@@ -198,7 +198,7 @@ static void sunxi_set_clk_rate(unsigned long hz)
 	int n = (rval >> 8) & 0x1F;
 	int k = ((rval >> 4) & 0x3) + 1;
 	int p = (rval >> 16) & 0x3;
-	
+
 	unsigned long clk_rate = 24000000 * n * k >> p;
 
 	unsigned long edo_clk = hz *2;
@@ -222,7 +222,7 @@ static void sunxi_set_clk_rate(unsigned long hz)
 	clrsetbits_le32(&ccm->nand0_clk_cfg, 3 << 24, 2 << 24);      /* 0 = OSC24M, 1 = PLL6, 2 = PLL5 */
 	clrsetbits_le32(&ccm->nand0_clk_cfg, 3 << 16, div_n << 16);
 	clrsetbits_le32(&ccm->nand0_clk_cfg, 0xf << 0, div_m << 0);
-	
+
 	/*gate on nand clock*/
 	setbits_le32(&ccm->ahb_gate0, (1 << AHB_GATE_OFFSET_NAND0));
 #ifdef CONFIG_MACH_SUN9I
@@ -234,7 +234,7 @@ static void sunxi_set_clk_rate(unsigned long hz)
 }
 
 static int sunxi_nfc_wait_int(struct sunxi_nfc *nfc, u32 flags,
-                          unsigned int timeout_ms)
+			  unsigned int timeout_ms)
 {
        u32 time_start;
 
@@ -242,7 +242,7 @@ static int sunxi_nfc_wait_int(struct sunxi_nfc *nfc, u32 flags,
 		timeout_ms = (CONFIG_SYS_HZ * SUNXI_NAND_DEFAULT_TIMEOUT_MS) / 1000;
 
 	time_start = get_timer(0);
-	
+
 	do {
 		if ((readl(&nfc->regs->st) & flags) == flags) {
 			setbits_le32(&nfc->regs->st, flags);
@@ -250,7 +250,7 @@ static int sunxi_nfc_wait_int(struct sunxi_nfc *nfc, u32 flags,
 		}
 	} while (get_timer(time_start) < timeout_ms);
 
-        pr_err("Timeout waiting for interrupt\n");
+	pr_err("Timeout waiting for interrupt\n");
 	return -ETIMEDOUT;
 }
 
@@ -1155,7 +1155,7 @@ static int sunxi_nand_rnd_ctrl_init(int node, struct mtd_info *mtd,
 
 	hwrnd->seeds = default_seeds;
 	hwrnd->nseeds = ARRAY_SIZE(default_seeds);
-	
+
 	if(fdt_getprop(gd->fdt_blob, node, "nand-randomizer-seeds", &ret)){
 		hwrnd->nseeds = ret / sizeof(*hwrnd->seeds);
 		hwrnd->seeds = kzalloc(hwrnd->nseeds * sizeof(*hwrnd->seeds),
@@ -1522,7 +1522,7 @@ static inline int of_get_nand_ecc_mode(int node)
 {
 	const char *pm;
 	int len, i;
-	
+
 	pm = fdt_getprop(gd->fdt_blob, node,  "nand-ecc-mode", &len);
 	if (!pm)
 		return -1;
@@ -1551,10 +1551,10 @@ static const char *nand_rnd_modes[] = {
  * and return its index in nand_rnd_modes table, or errno in error case.
 */
 static inline int of_get_nand_rnd_mode(int node)
-{	
+{
 	const char *pm;
 	int len, i;
-	
+
 	pm = fdt_getprop(gd->fdt_blob, node, "nand-rnd-mode", &len);
 	if (!pm)
 		return -1;
@@ -1615,14 +1615,14 @@ static void sunxi_nand_ecc_cleanup(struct nand_ecc_ctrl *ecc)
 }
 #endif
 
-static int sunxi_nand_ecc_init(int node, struct mtd_info *mtd, 
+static int sunxi_nand_ecc_init(int node, struct mtd_info *mtd,
 				struct nand_ecc_ctrl *ecc)
 {
 	struct nand_chip *nand = mtd->priv;
 	s32 strength;
 	s32 blk_size;
 	int ret;
-	
+
 	blk_size = fdtdec_get_int(gd->fdt_blob, node, "nand-ecc-step-size", -1);
 	strength = fdtdec_get_int(gd->fdt_blob, node, "nand-ecc-strength", -1);
 	if ((blk_size | strength) > -1){
@@ -1680,7 +1680,7 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 	int ret;
 	int i;
 	u32 tmp[8];
-	
+
 	if(!fdt_getprop(gd->fdt_blob, node, "reg", &nsels))
 		return -EINVAL;
 
@@ -1696,8 +1696,8 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 
 	chip->nsels = nsels;
 	chip->selected = -1;
-	
-	for (i = 0; i < nsels; i++) {	
+
+	for (i = 0; i < nsels; i++) {
 		ret = fdtdec_get_int_array(gd->fdt_blob, node, "reg", tmp,
 				   nsels);
 		if(ret)
@@ -1706,11 +1706,11 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 		if (tmp[i] > 7)
 			return -EINVAL;
 
- 		if (test_and_set_bit(tmp[i], &nfc->assigned_cs))
+		if (test_and_set_bit(tmp[i], &nfc->assigned_cs))
 			return -EINVAL;
-		
+
 		chip->sels[i].cs = tmp[i];
-		
+
 		if(fdtdec_get_int_array(gd->fdt_blob, node, "allwinner,rb", tmp,
 			nsels) && tmp[i] < 2){
 			chip->sels[i].rb.type = RB_NATIVE;
@@ -1768,7 +1768,7 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 	ret = sunxi_nand_rnd_init(node, mtd, &nand->rnd, &nand->ecc);
 	if (ret)
 		return ret;
-	
+
 	ret = nand_scan_tail(mtd);
 	if (ret)
 		return ret;
@@ -1813,7 +1813,7 @@ static int sunxi_nand_chips_init(int node, struct sunxi_nfc *nfc)
 	/*TODO  check maximum chips*/
 	for (offset = fdt_first_subnode(gd->fdt_blob, node);
 					offset >= 0;
-     					offset = fdt_next_subnode(gd->fdt_blob, offset)) {
+					offset = fdt_next_subnode(gd->fdt_blob, offset)) {
 		ret = sunxi_nand_chip_init(offset, nfc, 0 );
 		if (ret)
 			return ret;
@@ -1824,13 +1824,13 @@ static int sunxi_nand_chips_init(int node, struct sunxi_nfc *nfc)
 
 static int sunxi_nfc_init(struct sunxi_nfc *nfc)
 {
-	int node; 
+	int node;
 	int ret;
-	
+
 	spin_lock_init(&nfc->controller.lock);
 	init_waitqueue_head(&nfc->controller.wq);
 	INIT_LIST_HEAD(&nfc->chips);
-	
+
 	node = fdtdec_next_compatible(gd->fdt_blob, 0,
 				      COMPAT_SUNXI_NAND);
 	if (node < 0){
@@ -1842,14 +1842,14 @@ static int sunxi_nfc_init(struct sunxi_nfc *nfc)
 		pr_err("%s:nfc disabled in device tree\n", __func__);
 		goto err;
 	}
-	
+
 	nfc->regs = (struct sunxi_nand * const)fdtdec_get_addr(gd->fdt_blob,
 							node, "reg");
-	if ((fdt_addr_t)nfc->regs == FDT_ADDR_T_NONE) {	
+	if ((fdt_addr_t)nfc->regs == FDT_ADDR_T_NONE) {
 		pr_err("%s:unable to find nfc address in device tree\n", __func__);
 		goto err;
 	}
-	
+
 	/* clock enable*/
 	sunxi_set_clk_rate(NAND_MAX_CLOCK);
 	sunxi_nfc_rst(nfc);
@@ -1869,7 +1869,7 @@ static int sunxi_nfc_init(struct sunxi_nfc *nfc)
 		goto err;
 	}
 
-	return 0;	
+	return 0;
 
 err:
 	kfree(nfc);
@@ -1884,7 +1884,7 @@ void sunxi_nand_init(void)
 	if (!nfc)
 		return;
 
-	sunxi_nfc_init(nfc);			
+	sunxi_nfc_init(nfc);
 }
 
 MODULE_LICENSE("GPL v2");
