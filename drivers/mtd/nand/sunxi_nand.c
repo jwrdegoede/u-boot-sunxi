@@ -193,44 +193,29 @@ static void sunxi_set_clk_rate(unsigned long hz)
 {
 	struct sunxi_ccm_reg *const ccm =
 		(struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
+	int div_m, div_n;
 
-	uint32_t rval = readl(&ccm->pll5_cfg);
-	int n = (rval >> 8) & 0x1F;
-	int k = ((rval >> 4) & 0x3) + 1;
-	int p = (rval >> 16) & 0x3;
-
-	unsigned long clk_rate = 24000000 * n * k >> p;
-
-	unsigned long edo_clk = hz *2;
-	int div_n = 0, div_m;
-
-	unsigned long nand_clk_divid_ratio = clk_rate / edo_clk;
-
-	if (clk_rate % edo_clk)
-		nand_clk_divid_ratio++;
-
-	for (div_m = nand_clk_divid_ratio; div_m > 16 && div_n < 3; div_n++) {
+	div_m = (clock_get_pll6() + hz - 1) / hz;
+	for (div_n = 0; div_n < 3 && div_m > 16; div_n++) {
 		if (div_m % 2)
 			div_m++;
 		div_m >>= 1;
 	}
-	div_m--;
-	if (div_m > 15)
-		div_m = 15;	/* Overflow */
+	if (div_m > 16)
+		div_m = 16;
 
 	/* config mod clock */
-	clrsetbits_le32(&ccm->nand0_clk_cfg, 3 << 24, 2 << 24);      /* 0 = OSC24M, 1 = PLL6, 2 = PLL5 */
-	clrsetbits_le32(&ccm->nand0_clk_cfg, 3 << 16, div_n << 16);
-	clrsetbits_le32(&ccm->nand0_clk_cfg, 0xf << 0, div_m << 0);
+	writel(CCM_NAND_CTRL_ENABLE | CCM_NAND_CTRL_PLL6 |
+	       CCM_NAND_CTRL_N(div_n) | CCM_NAND_CTRL_M(div_m),
+	       &ccm->nand0_clk_cfg);
 
-	/*gate on nand clock*/
+	/* gate on nand clock */
 	setbits_le32(&ccm->ahb_gate0, (1 << AHB_GATE_OFFSET_NAND0));
 #ifdef CONFIG_MACH_SUN9I
 	setbits_le32(&ccm->ahb_gate1, (1 << AHB_GATE_OFFSET_DMA));
 #else
 	setbits_le32(&ccm->ahb_gate0, (1 << AHB_GATE_OFFSET_DMA));
 #endif
-	setbits_le32(&ccm->nand0_clk_cfg, 0x80000000);
 }
 
 static int sunxi_nfc_wait_int(struct sunxi_nfc *nfc, u32 flags,
